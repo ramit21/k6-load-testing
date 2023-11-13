@@ -1,4 +1,5 @@
 import {Rate} from "k6/metrics"
+import http from "k6/http"
 
 export let errorRate = new Rate("errors"), options = {
     scenarios: {
@@ -27,8 +28,8 @@ export let errorRate = new Rate("errors"), options = {
 //Setup method is called once, use it to generate one time activities like login jwts etc. and pass over to default method
 //Right now passing base url below just to show how to pass over values to the main default function
 export const setup = () => {
-    const baseUrl = "https://locahost:8080"
-    return { baseUrl: baseUrl }
+    const baseUrl = "http://localhost:8080/"
+    return { baseUrl: baseUrl, headers: {'Content-type' : 'application/json', 'Accept' : '*/*'} }
 };
 
 /*
@@ -37,5 +38,11 @@ export const setup = () => {
  more the no. of VUs k6 will try to spin to achieve the given iteration rate.
 */
 export default (config) => {
-    console.log('called', config.baseUrl)
+    const getResponse = http.get(config.baseUrl+'reserve/all', config.headers);
+    errorRate.add(getResponse.status !== 200);
+
+    const requestBody = { name : 'User' };
+    const postResponse = http.post(config.baseUrl+'reserve/save', JSON.stringify(requestBody), config.headers);
+    console.log(postResponse);
+    errorRate.add(postResponse.status !== 200);
 }
